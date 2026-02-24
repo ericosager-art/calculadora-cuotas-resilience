@@ -163,7 +163,7 @@ def dashboard(request: Request):
 def calcular(request: Request,
              tarjeta: str = Form(...),
              precio: float = Form(...),
-             cuotas: str = Form(None)):
+             cuotas: int = Form(None)):
 
     username = request.cookies.get("user")
     if not username:
@@ -171,25 +171,35 @@ def calcular(request: Request,
 
     db = SessionLocal()
     user = db.query(User).filter(User.username == username).first()
-    db.close()
 
-    data = load_data()
-    tarjetas = data["tarjetas"]
+    # Buscar coeficiente en base de datos
+    coef_record = db.query(Coefficient).filter(
+        Coefficient.card_name == tarjeta,
+        Coefficient.installments == cuotas
+    ).first()
 
+    if not coef_record:
+        db.close()
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            "error": "No se encontró coeficiente",
+            "rol": user.role,
+            "username": username
+        })
+
+    coef = coef_record.value
+    monto_pos = round2(precio * coef)
+    monto_cuota = round2(monto_pos / cuotas)
+
+    codigo = cuotas
     if tarjeta == "plan_z":
-        coef = tarjetas["plan_z"]["coeficiente"]
-        monto_pos = round2(precio * coef)
-        codigo = tarjetas["plan_z"]["codigo_pos"]
+        codigo = 11
         monto_cuota = None
-    else:
-        coef = tarjetas[tarjeta]["cuotas"][cuotas]
-        monto_pos = round2(precio * coef)
-        monto_cuota = round2(monto_pos / int(cuotas))
-        codigo = cuotas
+
+    db.close()
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
-        "tarjetas": tarjetas,
         "resultado": {
             "monto_pos": monto_pos,
             "monto_cuota": monto_cuota,
