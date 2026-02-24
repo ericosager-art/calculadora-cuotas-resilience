@@ -1,3 +1,29 @@
+from sqlalchemy import create_engine, Column, Integer, String, Float
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+DATABASE_URL = "sqlite:///./database.db"
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(bind=engine)
+Base = declarative_base()
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True)
+    password = Column(String)
+    role = Column(String)
+
+
+class Coefficient(Base):
+    __tablename__ = "coefficients"
+
+    id = Column(Integer, primary_key=True, index=True)
+    card_name = Column(String)
+    installments = Column(Integer)
+    value = Column(Float)
+Base.metadata.create_all(bind=engine)    
 from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
