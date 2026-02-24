@@ -1,0 +1,54 @@
+{
+  "usuarios": {
+    "admin": {
+      "password": "admin123",
+      "rol": "admin"
+    },
+    "corrientes": {
+      "password": "1234",
+      "rol": "vendedor"
+    },
+    "resistencia": {
+      "password": "1234",
+      "rol": "vendedor"
+    }
+  },
+  "tarjetas": {
+    "tuya": {
+      "nombre": "Tarjeta Tuya - Nuevo Banco del Chaco",
+      "cuotas": {
+        "1": 1.06,
+        "2": 1.24,
+        "3": 1.25,
+        "4": 1.47,
+        "5": 1.51,
+        "6": 1.58,
+        "7": 1.62,
+        "8": 1.64,
+        "9": 1.69,
+        "10": 1.75,
+        "11": 1.81,
+        "12": 1.94
+      }
+    },
+    "bancarias": {
+      "nombre": "Visa / Mastercard / Amex",
+      "cuotas": {
+        "3": 1.20,
+        "6": 1.37,
+        "12": 1.70
+      }
+    },
+    "naranja": {
+      "nombre": "Naranja X Visa o Mastercard",
+      "cuotas": {
+        "3": 1.39
+      }
+    },
+    "plan_z": {
+      "nombre": "Naranja X - Plan Z",
+      "coeficiente": 1.30,
+      "codigo_pos": 11
+    }
+  }
+}
