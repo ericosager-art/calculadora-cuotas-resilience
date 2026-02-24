@@ -42,21 +42,45 @@ Base.metadata.create_all(bind=engine)
 
 def init_users():
     db = SessionLocal()
+    ...
+    db.close()
 
-    if not db.query(User).filter(User.username == "admin").first():
-        db.add(User(username="admin", password="admin123", role="admin"))
 
-    if not db.query(User).filter(User.username == "Local Corrientes").first():
-        db.add(User(username="Local Corrientes", password="1234", role="seller"))
+def init_coefficients():
+    db = SessionLocal()
 
-    if not db.query(User).filter(User.username == "Local Resistencia").first():
-        db.add(User(username="Local Resistencia", password="1234", role="seller"))
+    if db.query(Coefficient).first():
+        db.close()
+        return
+
+    # Tarjeta Tuya
+    tuya = {
+        1: 1.06, 2: 1.24, 3: 1.25, 4: 1.47,
+        5: 1.51, 6: 1.58, 7: 1.62, 8: 1.64,
+        9: 1.69, 10: 1.75, 11: 1.81, 12: 1.94
+    }
+
+    for cuota, coef in tuya.items():
+        db.add(Coefficient(card_name="tarjeta_tuya", installments=cuota, value=coef))
+
+    bancarias = {
+        3: 1.20,
+        6: 1.37,
+        12: 1.70
+    }
+
+    for cuota, coef in bancarias.items():
+        db.add(Coefficient(card_name="tarjetas_bancarias", installments=cuota, value=coef))
+
+    db.add(Coefficient(card_name="naranja_visa_master", installments=3, value=1.39))
+    db.add(Coefficient(card_name="plan_z", installments=11, value=1.30))
 
     db.commit()
     db.close()
 
 
 init_users()
+init_coefficients()
 
 # ==============================
 # CONFIGURACIÓN FASTAPI
