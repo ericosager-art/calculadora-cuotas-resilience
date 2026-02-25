@@ -88,6 +88,12 @@
 <div class="header">
     <h2>Calculadora de Cuotas - Resilience Ink</h2>
     <a class="logout" href="/logout">Cerrar sesión</a>
+    {% if rol == "admin" %}
+    <br><br>
+    <a href="/admin/coeficientes">
+        <button style="width:200px;">Administrar Coeficientes</button>
+    </a>
+{% endif %}
 </div>
 
 <div class="card">
