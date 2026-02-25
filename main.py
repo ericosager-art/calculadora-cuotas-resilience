@@ -270,3 +270,34 @@ def calcular(
         "rol": user.role,
         "username": username
     })
+# ==============================
+# ADMIN - VER COEFICIENTES (SOLO LECTURA)
+# ==============================
+
+@app.get("/admin/coeficientes", response_class=HTMLResponse)
+def admin_coeficientes(request: Request):
+
+    username = request.cookies.get("user")
+    if not username:
+        return RedirectResponse("/", status_code=302)
+
+    db = SessionLocal()
+    user = db.query(User).filter(User.username == username).first()
+
+    # Seguridad: solo admin puede entrar
+    if not user or user.role != "admin":
+        db.close()
+        return RedirectResponse("/dashboard", status_code=302)
+
+    coeficientes = db.query(Coefficient).order_by(
+        Coefficient.card_name,
+        Coefficient.installments
+    ).all()
+
+    db.close()
+
+    return templates.TemplateResponse("admin_coeficientes.html", {
+        "request": request,
+        "coeficientes": coeficientes,
+        "username": username
+    })
