@@ -198,7 +198,7 @@ def calcular(
     request: Request,
     tarjeta: str = Form(...),
     precio: float = Form(...),
-    cuotas: int = Form(...)
+    cuotas: int = Form(None)
 ):
     username = request.cookies.get("user")
     if not username:
@@ -212,6 +212,26 @@ def calcular(
         return RedirectResponse("/", status_code=302)
 
     data = load_data()
+
+    # ==============================
+    # NORMALIZACIÓN DE CUOTAS
+    # ==============================
+
+    if tarjeta == "naranja":
+        cuotas = 3
+
+    if tarjeta == "plan_z":
+        cuotas = 11
+
+    if not cuotas:
+        db.close()
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            "tarjetas": data.get("tarjetas", []),
+            "error": "Debe seleccionar cuotas",
+            "rol": user.role,
+            "username": username
+        })
 
     # Traducción segura frontend → DB
     tarjeta_db = CARD_NAME_MAP.get(tarjeta, tarjeta)
