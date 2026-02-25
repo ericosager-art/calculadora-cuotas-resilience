@@ -139,14 +139,15 @@
 {% if resultado %}
 <div class="resultado">
     <h3>Resultado</h3>
-    <p><strong>Monto a ingresar en POS:</strong> ${{ resultado.monto_pos }}</p>
 
-    {% if resultado.monto_cuota %}
-        <p><strong>Valor por cuota:</strong> ${{ resultado.monto_cuota }}</p>
+    <p><strong>Coeficiente aplicado:</strong> {{ resultado.coeficiente }}</p>
+
+    <p><strong>Monto a ingresar en POS:</strong> ${{ resultado.total }}</p>
+
+    {% if resultado.cuota %}
+        <p><strong>Valor por cuota:</strong> ${{ resultado.cuota }}</p>
     {% endif %}
 
-    <p><strong>Código POS:</strong></p>
-    <div class="codigo">{{ resultado.codigo }}</div>
 </div>
 {% endif %}
 
