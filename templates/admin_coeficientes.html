@@ -1,1 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coeficientes - Admin</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            padding: 30px;
+        }
 
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #1e3a8a;
+            color: white;
+        }
+
+        tr:hover {
+            background: #f1f5f9;
+        }
+
+        .volver {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            background: #1e3a8a;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Tabla de Coeficientes</h2>
+
+<table>
+    <tr>
+        <th>Tarjeta</th>
+        <th>Cuotas</th>
+        <th>Coeficiente</th>
+    </tr>
+
+    {% for c in coeficientes %}
+    <tr>
+        <td>{{ c.card_name }}</td>
+        <td>{{ c.installments }}</td>
+        <td>{{ c.value }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<a class="volver" href="/dashboard">Volver al Dashboard</a>
+
+</body>
+</html>
