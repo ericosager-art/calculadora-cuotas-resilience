@@ -1,15 +1,17 @@
+import os
+import json
+from decimal import Decimal, ROUND_HALF_UP
+
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
 from sqlalchemy import create_engine, Column, Integer, String, Float
-from sqlalchemy.orm import declarative_base, sessionmaker
-from decimal import Decimal, ROUND_HALF_UP
-import json
-import os
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 # ==============================
-# CONFIGURACIÓN BASE DE DATOS
+# DATABASE
 # ==============================
 
 DATABASE_URL = "sqlite:///./database2.db"
@@ -25,6 +27,7 @@ Base = declarative_base()
 
 class User(Base):
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     password = Column(String)
@@ -33,42 +36,47 @@ class User(Base):
 
 class Coefficient(Base):
     __tablename__ = "coefficients"
+
     id = Column(Integer, primary_key=True, index=True)
     card_name = Column(String, index=True)
     installments = Column(Integer)
     value = Column(Float)
 
 
-app = FastAPI()
+# ==============================
+# APP INIT
+# ==============================
 
+app = FastAPI()
 Base.metadata.create_all(bind=engine)
 
+# Mapping oficial entre frontend y DB
+CARD_NAME_MAP = {
+    "tuya": "tarjeta_tuya",
+    "bancarias": "tarjetas_bancarias",
+    "naranja": "naranja_visa_master",
+    "plan_z": "plan_z",
+}
+
 # ==============================
-# STARTUP EVENT (PROFESIONAL)
+# STARTUP
 # ==============================
 
 @app.on_event("startup")
 def startup_event():
     db = SessionLocal()
 
-    # Crear o actualizar admin
-    admin = db.query(User).filter(User.username == "admin").first()
-    if not admin:
+    # Crear admin si no existe
+    if not db.query(User).filter(User.username == "admin").first():
         db.add(User(username="admin", password="admin123", role="admin"))
-    else:
-        admin.password = "admin123"
-        admin.role = "admin"
 
-    # Crear o actualizar vendedor
-    vendedor = db.query(User).filter(User.username == "vendedor").first()
-    if not vendedor:
+    # Crear vendedor si no existe
+    if not db.query(User).filter(User.username == "vendedor").first():
         db.add(User(username="vendedor", password="1234", role="vendedor"))
-    else:
-        vendedor.password = "1234"
-        vendedor.role = "vendedor"
 
-    # Crear coeficientes si no existen
-    if not db.query(Coefficient).first():
+    # Insertar coeficientes SOLO si tabla está vacía
+    if db.query(Coefficient).count() == 0:
+
         tuya = {
             1: 1.06, 2: 1.24, 3: 1.25, 4: 1.47,
             5: 1.51, 6: 1.58, 7: 1.62, 8: 1.64,
@@ -76,28 +84,45 @@ def startup_event():
         }
 
         for cuota, coef in tuya.items():
-            db.add(Coefficient(card_name="tarjeta_tuya", installments=cuota, value=coef))
+            db.add(Coefficient(
+                card_name=CARD_NAME_MAP["tuya"],
+                installments=cuota,
+                value=coef
+            ))
 
         bancarias = {3: 1.20, 6: 1.37, 12: 1.70}
         for cuota, coef in bancarias.items():
-            db.add(Coefficient(card_name="tarjetas_bancarias", installments=cuota, value=coef))
+            db.add(Coefficient(
+                card_name=CARD_NAME_MAP["bancarias"],
+                installments=cuota,
+                value=coef
+            ))
 
-        db.add(Coefficient(card_name="naranja_visa_master", installments=3, value=1.39))
-        db.add(Coefficient(card_name="plan_z", installments=11, value=1.30))
+        db.add(Coefficient(
+            card_name=CARD_NAME_MAP["naranja"],
+            installments=3,
+            value=1.39
+        ))
+
+        db.add(Coefficient(
+            card_name=CARD_NAME_MAP["plan_z"],
+            installments=11,
+            value=1.30
+        ))
 
     db.commit()
     db.close()
 
 # ==============================
-# ARCHIVOS Y TEMPLATES
+# STATIC & TEMPLATES
 # ==============================
 
 os.makedirs("static/images", exist_ok=True)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 DATA_FILE = "data.json"
-
 
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -105,12 +130,13 @@ def load_data():
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
-
 def round2(value):
-    return float(Decimal(value).quantize(
-        Decimal("0.01"),
-        rounding=ROUND_HALF_UP
-    ))
+    return float(
+        Decimal(value).quantize(
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP
+        )
+    )
 
 # ==============================
 # LOGIN
@@ -122,20 +148,20 @@ def login_page(request: Request):
 
 
 @app.post("/login")
-def login(request: Request, username: str = Form(...), password: str = Form(...)):
+def login(username: str = Form(...), password: str = Form(...)):
     db = SessionLocal()
-    user = db.query(User).filter(User.username == username).first()
+    user = db.query(User).filter(
+        User.username == username,
+        User.password == password
+    ).first()
     db.close()
 
-    if user and user.password == password:
-        response = RedirectResponse("/dashboard", status_code=302)
-        response.set_cookie("user", username)
-        return response
+    if not user:
+        return RedirectResponse("/", status_code=302)
 
-    return templates.TemplateResponse("login.html", {
-        "request": request,
-        "error": "Credenciales incorrectas"
-    })
+    response = RedirectResponse("/dashboard", status_code=302)
+    response.set_cookie("user", user.username)
+    return response
 
 # ==============================
 # DASHBOARD
@@ -164,15 +190,16 @@ def dashboard(request: Request):
     })
 
 # ==============================
-# CALCULAR
+# CALCULAR (VERSIÓN DEFINITIVA)
 # ==============================
 
 @app.post("/calcular", response_class=HTMLResponse)
-def calcular(request: Request,
-             tarjeta: str = Form(...),
-             precio: float = Form(...),
-             cuotas: int = Form(...)):
-
+def calcular(
+    request: Request,
+    tarjeta: str = Form(...),
+    precio: float = Form(...),
+    cuotas: int = Form(...)
+):
     username = request.cookies.get("user")
     if not username:
         return RedirectResponse("/", status_code=302)
@@ -186,8 +213,11 @@ def calcular(request: Request,
 
     data = load_data()
 
+    # Traducción segura frontend → DB
+    tarjeta_db = CARD_NAME_MAP.get(tarjeta, tarjeta)
+
     coef_record = db.query(Coefficient).filter(
-        Coefficient.card_name == tarjeta,
+        Coefficient.card_name == tarjeta_db,
         Coefficient.installments == cuotas
     ).first()
 
@@ -196,41 +226,27 @@ def calcular(request: Request,
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
             "tarjetas": data.get("tarjetas", []),
-            "error": "No se encontró coeficiente",
+            "error": "No existe coeficiente para esa combinación.",
             "rol": user.role,
             "username": username
         })
 
     coef = coef_record.value
-    monto_pos = round2(precio * coef)
-    monto_cuota = round2(monto_pos / cuotas)
+    total = round2(precio * coef)
+    cuota_valor = round2(total / cuotas)
 
-    codigo = cuotas
-    if tarjeta == "plan_z":
-        codigo = 11
-        monto_cuota = None
+    resultado = {
+        "coeficiente": coef,
+        "total": total,
+        "cuota": cuota_valor
+    }
 
     db.close()
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "tarjetas": data.get("tarjetas", []),
-        "resultado": {
-            "monto_pos": monto_pos,
-            "monto_cuota": monto_cuota,
-            "codigo": codigo,
-            "tarjeta": tarjeta
-        },
+        "resultado": resultado,
         "rol": user.role,
         "username": username
     })
-
-# ==============================
-# LOGOUT
-# ==============================
-
-@app.get("/logout")
-def logout():
-    response = RedirectResponse("/", status_code=302)
-    response.delete_cookie("user")
-    return response
